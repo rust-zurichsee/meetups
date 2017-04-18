@@ -1,0 +1,7 @@
+[package]
+name = "hello-world"
+version = "0.1.0"
+authors = ["Danilo Bargen <mail@dbrgn.ch>"]
+
+[dependencies]
+iron = "^0.5"

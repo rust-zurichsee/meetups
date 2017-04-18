@@ -1,0 +1,8 @@
+[package]
+name = "logger-middleware"
+version = "0.1.0"
+authors = ["Danilo Bargen <mail@dbrgn.ch>"]
+
+[dependencies]
+iron = "^0.5"
+router = "^0.5"
