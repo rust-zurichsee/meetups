@@ -1,8 +1,10 @@
-# Slides
+# Rust Zürichsee
 
-All slides and other material of the meetups are inside a directory per meetup.
+## Slides
 
-# Upcomming events
+All slides and other materials of the meetups are inside a directory per meetup.
+
+## Upcoming events
 
 Follow the [Mozilla CH Meetup](https://www.meetup.com/de-DE/Mozilla-Meetup-Switzerland/) 
 and the [Rust Zürichsee Meetup](https://www.meetup.com/de-DE/Rust-Zurich/) or this repo.
