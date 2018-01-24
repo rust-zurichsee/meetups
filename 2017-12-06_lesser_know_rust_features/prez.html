@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Lesser-known Rust features
+
+---
+
+class: center, middle
+
+# Disclaimer
+
+---
+
+# Patterns
+
+```rust
+struct Point {
+	x: isize,
+	y: isize,
+}
+
+fn foo(foo: Point) {
+	let Point { x: x, y: y } = foo;
+	// use x and y here
+}
+```
+
+--
+
+```rust
+// notice `x: x` became just `x`
+fn foo(Point { x, y }: Point) {
+	// use x and y here
+}
+```
+
+---
+
+# Patterns
+
+```rust
+// refutable pattern - won't work
+fn foo(Some(_): Option<i32>) {
+	// same as
+	let Some(_) = foo;
+}
+```
+
+```rust
+// RFC?
+fn foo(Some(_): Option<i32>) {
+
+}
+
+fn foo(None: Option<i32>) {
+
+}
+```
+
+---
+
+# Loop labels - without labels
+
+```rust
+fn foo(stuff: &[&[&[u8]]]) {
+    let (mut break_a, mut break_b) = (false, false);
+	// loop a -------------------------------------|
+	for x in stuff {                             //|
+	    // loop b -----------------------------|   |
+	    for y in *x {                        //|   |
+		    // loop c ----------------------|  |   |
+	        for z in *y {                 //|  |   |
+				if some_condition {       //|  |   |
+					break_b = true;       //|  |   |
+					break;                //|  |   |
+				}                         //|  |   |
+				if some_other_condition { //|  |   |
+					break_a = true;       //|  |   |
+					break;                //|  |   |
+				}                         //|  |   |
+	        } // ----------------------------  |   |
+			if break_b {                     //|   |
+				break_b = false;             //|   |
+				break;                       //|   |
+			}                                //|   |
+	    } // ----------------------------------|   |
+		if break_b {                             //|
+			break_a = false;                     //|
+			break;                               //|
+		}                                        //|
+	} // ------------------------------------------|
+}
+```
+
+---
+
+# Loop labels - with labels
+
+```rust
+fn foo(stuff: &[&[&[u8]]]) {
+    // label comes before loop
+	// syntax the same as lifetimes - but not to be confused!
+	// 'label: <loop body>
+	'a: for x in stuff {
+	    'b: for y in *x {
+	        'c: for z in *y {
+				if some_condition {
+					break 'b;
+				}
+				if some_other_condition {
+					break 'a;
+				}
+	        }
+	    }
+	}
+}
+```
+
+---
+
+# Loop labels - any kind of loop
+
+```rust
+'forever: loop {
+    for socket in listeners {
+		// ...
+		if signalled_to_quit {
+		    break 'forever;
+		}
+		// ...
+	}
+}
+```
+
+--- 
+
+```rust
+'everything: while having_good_day {
+	break 'everything;
+}
+```
+
+---
+
+# Loop labels - easter egg
+
+```rust
+fn main() {
+    break rust;
+}
+```
+
+```terminal
+   Compiling playground v0.0.1 (file:///playground)
+error[E0425]: cannot find value `rust` in this scope
+ --> src/main.rs:2:11
+  |
+2 |     break rust;
+  |           ^^^^ not found in this scope
+
+error[E0268]: `break` outside of loop
+ --> src/main.rs:2:5
+  |
+2 |     break rust;
+  |     ^^^^^^^^^^ cannot break outside of a loop
+
+error: internal compiler error: It looks like you're trying to break rust; would you like some ICE?
+
+note: the compiler expectedly panicked. this is a feature.
+
+note: we would appreciate a joke overview: https://github.com/rust-lang/rust/issues/43162#issuecomment-320764675
+
+note: rustc 1.22.1 (05e2e1c41 2017-11-22) running on x86_64-unknown-linux-gnu
+
+error: aborting due to 3 previous errors
+
+error: Could not compile `playground`.
+
+To learn more, run the command again with --verbose.
+```
+
+---
+
+# Alternate debug formatting
+
+```rust
+#[derive(Debug)]
+struct Foo {
+	bar: i32,
+	baz: bool,
+	qux: usize,
+	thing_with_long_name: Vec<String>,
+}
+
+println!("{:?}", vector_of_foos);
+
+// [Foo { bar: 10, baz: false, qux: 3287, thing_with_long_name: [ ... ] }, Foo { bar: 47318, baz: true, qux: ...
+```
+
+---
+
+# Alternate debug formatting
+
+```rust
+#[derive(Debug)]
+struct Foo { x: isize, y: isize }
+
+fn main() {
+	let a = Foo { x: 10, y: 20 };
+	println!("{:?}", a);
+	// Foo { x: 10, y: 20 }
+	println!("{:#?}", a);
+	// Foo {
+	//     x: 10,
+	//     y: 20
+	// }
+}
+```
+
+---
+
+# Alternate debug formatting
+
+```rust
+#[derive(Debug)]
+struct Foo {
+	bar: i32,
+	baz: bool,
+	qux: usize,
+	thing_with_long_name: Vec<String>,
+}
+
+// before:
+// [Foo { bar: 10, baz: false, qux: 3287, thing_with_long_name: [ ... ] }, Foo { bar: 47318, baz: true, qux: ...
+
+// after:
+// Foo {
+// 	bar: 10
+// 	baz: false,
+// 	qux: 123,
+// 	thing_with_long_name: [
+// 		"hello",
+// 		"world"
+// 	]
+// }
+```
+
+---
+
+# Debug formatting assistants
+
+```rust
+impl fmt::Debug for Foo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	    write!(f, "Foo { x: {} }", self.x)
+    }
+}
+```
+
+---
+
+# Debug formatting assistants
+
+* `std::fmt::Formatter`
+  * `::debug_struct`
+  * `::debug_tuple`
+  * `::debug_list`
+  * `::debug_set`
+  * `::debug_map`
+  
+---
+
+# `debug_struct`
+
+```rust
+struct Foo {
+    bar: i32,
+    baz: String,
+}
+
+impl fmt::Debug for Foo {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Foo")
+            .field("The bar", &self.bar)
+            .field("A baz, I think?", &self.baz)
+	    .field("Some nonexistent field", self.compute_meaning_of_life())
+            .finish()
+    }
+}
+
+// Foo {
+//     The bar: 1,
+//     A baz, I think?: "foo"
+//     Some nonexistent field: 42,
+// }
+```
+
+---
+
+# `debug_list`
+
+```rust
+impl fmt::Debug for Foo {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_list()
+		     // IntoIterator<D: Debug>
+		    .entries(self.some_collection.clone())
+            .finish()
+    }
+}
+
+// [entry1, entry2, entry3]
+```
+
+---
+
+# `FromIterator` + `Result`
+
+```rust
+fn parse_lines(lines: Vec<&str>) 
+    -> Result<Vec<usize>, <usize as FromStr>::Err>
+{
+	let mut result = vec![];
+	for item in lines {
+		result.push(item.parse()?);
+	}
+	Ok(result)
+}
+```
+
+--
+
+```rust
+fn parse_lines(lines: Vec<&str>) 
+    -> Result<Vec<usize>, <usize as FromStr>::Err>
+{
+	lines.into_iter()
+	     .map(str::parse)
+	     .collect()
+}
+
+// turn a Vec<Result<T, E>> into a Result<Vec<T>, E>
+
+// internally 
+// FromIter::from_iter(lines.into_iter().map(str::parse))
+```
+
+---
+
+class: center, middle
+
+# Everything is an expression*
+
+*Read terms and conditions
+
+---
+
+# Return
+
+```rust
+fn foo(n: i32) -> i32 {
+	if n % 2 == 0 {
+		return n / 2;
+	} else {
+		return (n * 3) - 1;
+	}
+}
+```
+
+--
+
+```rust
+fn foo(n: i32) -> i32 {
+	if x % 2 == 0 {
+		return return n / 2;
+//             ------
+	} else {
+		return (n * 3) - 1;
+	}
+}
+```
+--
+
+```rust
+fn foo(n: i32) -> i32 {
+	if (return n) {
+//      --------
+		return return n / 2;
+//             ------
+	} else {
+		return (n * 3) - 1;
+	}
+}
+```
+
+---
+
+# Return
+
+```rust
+fn foo(n: i32) -> i32 {
+	if (return return return return n) {
+		return return return return return n / 2;
+	} else {
+		return return return return n * 3 - 1;
+	}
+}
+```
+
+--
+
+```rust
+fn foo(n: i32) -> i32 {
+	if return return return return n {
+		return return return return return n / return return 2;
+	} else {
+		return return return return n * return return 3 - return 1;
+	}
+}
+```
+
+--
+
+```rust
+// error[E0277]: the trait bound `i32: std::ops::Mul<()>` is not satisfied
+// etc.
+// incorrect type coercion for `!`
+// see https://github.com/rust-lang/rust/issues/40800
+```
+
+---
+
+# Return
+
+* Has type `!` diverging/divergent/"never" type.
+* Fulfills type requirements for any type, always.
+* Not a real type - yet. Causes aforementioned type error.
+  * Behind `#![feature(never_type)]`.
+* https://github.com/rust-lang/rust/issues/35121
+
+
+---
+
+# Mystery
+
+```rust
+fn foo() {
+    .. .. .. .. .. .. ..;
+}
+```
+
+---
+
+# Range!
+
+```rust
+fn foo() {
+	// foo[1..10] - std::ops::Range
+	// foo[..10] - std::ops::RangeTo
+	// foo[1..] - std::ops::RangeFrom
+	// foo[..] - std::ops::RangeFull
+	
+    .. .. .. .. .. .. ..;
+	.. .. .. .. .. .. ..;
+	
+	// RangeTo<RangeTo<RangeTo<RangeTo<RangeTo<RangeFull>>>>>
+	   ..      ..      ..      ..      ..      ..;
+}
+```
+
+---
+
+# Extras
+
+---
+
+# NUL crate bug
+
+Windows doesn't like directories with some reserved names from MSDOS era
+
+* NUL
+* CON
+* etc.
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
